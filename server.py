@@ -1,12 +1,15 @@
-from flask import Flask
+from flask import Flask, request
 import json
 
 app = Flask(__name__)
 
-@app.route("/")
+# http server usage:
+# Put data using POST
+# 
+
+@app.route("/", methods=['GET', 'POST'])
 def receive():
-    # update my log, dict
-    pass
+    return "Request method: " + request.method;1
 
 def broadcast(msg, addrs):
     for addr in addrs:
@@ -19,3 +22,6 @@ def serialize(message, timestamp, previous_events):
 def deserialize(msg):
     v = json.loads(msg)
     return v['msg'], v['T'], v['eR']
+
+# start flask
+app.run()
