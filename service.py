@@ -31,22 +31,22 @@ class TweetService(object):
     def block(self, bad_guy):
         bad_node = self._find_node(bad_guy)
         if bad_node is None:
-            print "that's no guy I know"
-            return 
+            return False
         self.db.lock()
         self.db.put((self.my_site.node, bad_node))
         self.db.save()
         self.db.release()
+        return True
 
     def unblock(self, bad_guy):
         bad_node = self._find_node(bad_guy)
         if bad_node is None:
-            print "that's no guy I know"
-            return
+            return False
         self.db.lock()
         self.db.remove((self.my_site.node, bad_node))
         self.db.save()
         self.db.release()
+        return True
 
     def tweet(self, message, sender):
         params = (self.my_site.name, message, now())
@@ -60,9 +60,7 @@ class TweetService(object):
                     if not self.db.hasRec(eR, target.node):
                         new_log.append(eR.to_dict())
                 # async call
-                sender(target.addr, serialize(self.db.timestamp, self.db.log))
-            elif target.node != self.my_site.node:
-                print "%s he is a bad guy, I'm not gonna send shit to him"%(target.name, )
+                sender(target.addr, serialize(self.db.timestamp, new_log))
         self.db.release()
 
     def _update_timestamp(self, timestamp, from_node):
@@ -112,11 +110,10 @@ class TweetService(object):
         self.db.lock()
         timeline = []
         for eR in self.db.log:
-            if eR.op == "tweet" and not self.db.has((self.my_site.node, eR.node)):
+            if eR.op.func == "tweet" and not self.db.has((self.my_site.node, eR.node)):
                 timeline.append(eR)
         self.db.release()
-        sorted(timeline, _sort_by_time)
-        return {"timeline": [eR.to_dict() for eR in timeline]}
+        return {"timeline": [eR.op.to_dict() for eR in timeline]}
 
     def on_receive(self, from_node, timestamp, log):
         self.db.lock()

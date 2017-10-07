@@ -1,46 +1,70 @@
-from flask import Flask, request, jsonify
-import json
+import threading
+import os
+from urlparse import urlparse
+
+from flask import Flask, request, jsonify, abort
 import service
 import storage
 import config
-import threading
+import json
 import requests
+
+from requests.exceptions import ConnectionError
 
 app = Flask(__name__)
 # http server usage:
 # Put data using POST
 # 
 
+def try_post(addr, message):
+    try:
+        requests.post(addr, None, message)
+    except ConnectionError as e:
+        print "ConnectionError: the endpoint %s is not online"%(addr,)
+
 def post_request_sender(addr, message):
-    t = threading.Thread(target=requests.post, args=(addr+"/recv", None, message))
+    t = threading.Thread(target=try_post, args=(addr+"/recv", message))
     t.start()
 
 @app.route("/recv", methods=['POST'])
 def recv():
     d = request.get_json()
     twitter.on_receive(d['node'], d['timestamp'], d['log'])
-    return 
-
+    return jsonify(status="ok")
 @app.route("/post", methods=['POST'])
 def post():
-    twitter.tweet(request.data, post_request_sender)
-
+    twitter.tweet(request.get_json()["message"], post_request_sender)
+    return jsonify(status="ok")
 @app.route("/block", methods=['GET'])
 def block():
     blocked = request.args.get('user')
-    twitter.block(blocked)
-
+    if not twitter.block(blocked):
+        abort(400)
+    return jsonify(status="ok")
 @app.route("/unblock", methods=['GET'])
 def unblock():
     unblocked = request.args.get('user')
-    twitter.unblock(unblocked)
+    if not twitter.unblock(unblocked):
+        abort(400)
+    return jsonify(status="ok")
 
 @app.route("/timeline", methods=['GET'])
 def timeline():
-    return jsonify(twitter.get_timeline())
+    tl = twitter.get_timeline()['timeline']
+    res = []
+    for op in tl:
+        msg = json.loads(op['params'])
+        res.append({"user": msg[0], "message": msg[1], "time": msg[2]})
+    return jsonify({"timeline": res})
+
+@app.route("/suicide", methods=['GET'])
+def suicide():
+    # ohh yeah, just suicide quick!
+    os.system('kill $PPID')
 
 if __name__ == '__main__':
     my_site, sites = config.load("config.json")
     database = storage.Storage(my_site.node, len(sites), "datafile")
     twitter = service.TweetService(database, my_site, sites)
-    app.run(host=my_site.addr.split(":")[0], port=my_site.addr.split(":")[1])
+    r = urlparse(my_site.addr)
+    app.run(host=r.hostname, port=r.port)
