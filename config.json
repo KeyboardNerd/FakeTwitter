@@ -1,0 +1,7 @@
+{
+    "my_node": 0,
+    "sites":[
+        {"node": 0, "name": "Ha MaPi", "addr": "127.0.0.1:8080"},
+        {"node": 1, "name": "Sha Bi", "addr": "127.0.0.1:8081"}
+    ]
+}

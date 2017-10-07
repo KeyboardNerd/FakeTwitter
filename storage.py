@@ -1,39 +1,95 @@
 import json
 import os
 import copy
+import threading
+
+def hasRec(timestamp, event_record, target):
+    return timestamp[target][event_record.node] >= event_record.time
+
+class EventRecord(object):
+    def __init__(self, node, time, op):
+        self.node = node
+        self.time = time
+        self.op = op
+
+    def to_dict(self):
+        return {"node": self.node, "time": self.time, "op": self.op.to_dict()}
+
+class Operation(object):
+    def __init__(self, func, params):
+        self.func = func
+        self.param = params
+    
+    def to_dict(self):
+        return {"func": self.func, "params": self.param}
 
 class Storage(object):
-    def __init__(self, file_name):
-        self.timestamp = []
-        self.dictionary = []
-        self.tweet_log = []
-        self.block_log = []
+    # all functions should be thread safe
+    def __init__(self, my_node, num_node, file_name):
+        self.my_node = my_node
+
+        self.timestamp = [[0]*num_node for _ in xrange(num_node)]
+        self.dict = set()
+        self.log = []
         self.file_name = file_name
         self.backup_file_name = file_name + ".backup"
         self._load()
 
+    def hasRec(self, eR, k):
+        return self.timestamp[k][eR.node] >= eR.time
+
+    def record(self, operation):
+        self.timestamp[self.my_node][self.my_node] += 1
+        event_record = EventRecord(node=self.my_node,
+            time = self.timestamp[self.my_node][self.my_node],
+            op=operation)
+        self.log.append(event_record)
+
+    def put(self, value):
+        self.record(Operation("ins", value))
+        self.dict.add(value)
+
+    def remove(self, value):
+        self.record(Operation("del", value))
+        if value in self.dict:
+            self.dict.remove(value)
+
+    def has(self, value):
+        return value in self.dict
+
     def save(self):
         with open(self.backup_file_name, "w+") as f:
-            json.dump(self.export_dict(), f)
+            json.dump(self._export_dict(), f)
         if os.path.exists(self.file_name):
             os.remove(self.file_name)
         os.rename(self.backup_file_name, self.file_name)
 
-    def load_dict(self, s):
+    def lock(self):
+        pass
+    
+    def release(self):
+        pass
+
+    def _load_dict(self, s):
         # load a dictionary
         self.timestamp = s['timestamp']
-        self.tweet_log = s['tweet_log']
-        self.block_log = s['block_log']
-        self.dictionary = s['dict']
+        log = s['log']
+        self.log = []
+        for eR in log:
+            self.log.append(EventRecord(eR["node"], eR["time"], Operation(eR["op"]["func"], eR["op"]["params"])))
+        self.dict = set(s['dict'])
 
-    def export_dict(self):
-        return {"timestamp": self.timestamp, "tweet_log": self.tweet_log, "block_log": self.block_log, "dict": self.dictionary}
+    def _export_dict(self):
+        log = []
+        for eR in self.log:
+            log.append(eR.to_dict())
+        return {"timestamp": self.timestamp, "log": log, "dict": list(self.dict)}
 
     def _load(self):
         if os.path.exists(self.file_name) and not os.path.exists(self.backup_file_name):
             # normal condition
             with open(self.file_name, "r") as f:
-                self.load_dict(json.load(f))
+                self._load_dict(json.load(f))
         elif not os.path.exists(self.file_name) and not os.path.exists(self.backup_file_name):
             # initialization condition
             self.save()
@@ -44,33 +100,3 @@ class Storage(object):
             # failed on os.remove
             os.remove(self.file_name)
             os.rename(self.backup_file_name, self.file_name)
-
-    def dict_put(self, key, value):
-        # lock
-        self.dictionary.append((key, value))
-        self.save()
-        # release
-    
-    def dict_exists(self, key, value):
-        return (key, value) in self.dictionary
-
-    def tweet_log_put(self, message):
-        # lock tweet log
-        self.tweet_log.append(message)
-        self.save()
-        # release log
-    
-    def tweet_log_get(self):
-        # return a copied log in case that other processes will modify the log
-        return copy.deepcopy(self.tweet_log)
-    
-    def block_log_put(self, message):
-        # lock
-        self.block_log.append(message)
-        self.save()
-        # release
-    
-S = Storage("data_file")
-if __name__ == '__main__':
-    S.tweet_log_put("this is a good message")
-    S.dict_put("a", "b")
