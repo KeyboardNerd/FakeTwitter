@@ -1,15 +1,15 @@
 import threading
 import os
-from urlparse import urlparse
+import json
+import sys
 
+from urlparse import urlparse
 from flask import Flask, request, jsonify, abort
+from requests.exceptions import ConnectionError
 import service
 import storage
 import config
-import json
 import requests
-
-from requests.exceptions import ConnectionError
 
 app = Flask(__name__)
 # http server usage:
@@ -59,11 +59,19 @@ def timeline():
 
 @app.route("/suicide", methods=['GET'])
 def suicide():
-    # ohh yeah, just suicide quick!
+    # ohhhh yeah, just suicide quick! right thru the throat
     os.system('kill $PPID')
 
 if __name__ == '__main__':
-    my_site, sites = config.load("config.json")
+    my_node = None
+    if len(sys.argv) > 1:
+        my_node = int(sys.argv[1])
+    my_site, sites = config.load("config.json", my_node)
+    print "I am User '%s' Addr '%s' Node %d"%(my_site.name, my_site.addr, my_site.node)
+    print "I know these users:"
+    for site in sites:
+        print "User '%s' Addr '%s' Node %d"%(site.name, site.addr, site.node)
+
     database = storage.Storage(my_site.node, len(sites), "datafile")
     twitter = service.TweetService(database, my_site, sites)
     r = urlparse(my_site.addr)
