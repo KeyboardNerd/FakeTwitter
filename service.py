@@ -1,6 +1,8 @@
 import json
 import datetime
 import storage
+import threading
+import requests
 
 def _sort_by_time(eR):
     return eR.time
@@ -8,11 +10,12 @@ def _sort_by_time(eR):
 def now():
     return datetime.datetime.now().isoformat()
 
-class Site(object):
-    def __init__(self, node, name, addr):
-        self.node = node
-        self.name = name
-        self.addr = addr
+def serialize(timestamp, log):
+    return json.dumps({"timestamp": timestamp, "log": log})
+
+def deserialize(msg):
+    v = json.loads(msg)
+    return v['msg'], v['T'], v['eR']
 
 class TweetService(object):
     def __init__(self, db, my_site, all_sites):
@@ -39,13 +42,13 @@ class TweetService(object):
         bad_node = self._find_node(bad_guy)
         if bad_node is None:
             print "that's no guy I know"
-            return 
+            return
         self.db.lock()
         self.db.remove((self.my_site.node, bad_node))
         self.db.save()
         self.db.release()
 
-    def tweet(self, message):
+    def tweet(self, message, sender):
         params = (self.my_site.name, message, now())
         self.db.lock()
         self.db.record(storage.Operation("tweet", json.dumps(params)))
@@ -55,20 +58,21 @@ class TweetService(object):
                 new_log = []
                 for eR in self.db.log:
                     if not self.db.hasRec(eR, target.node):
-                        new_log.append(eR)
-                # async
+                        new_log.append(eR.to_dict())
+                # async call
+                sender(target.addr, serialize(self.db.timestamp, self.db.log))
             elif target.node != self.my_site.node:
                 print "%s he is a bad guy, I'm not gonna send shit to him"%(target.name, )
         self.db.release()
 
-    def _update_timestamp(self, timestamp, from_site):
+    def _update_timestamp(self, timestamp, from_node):
         for k in self.all_sites:
-            self.db.timestamp[self.my_site.node][k.node] = max(self.db.timestamp[self.my_site.node][k.node], timestamp[from_site][k.node])
+            self.db.timestamp[self.my_site.node][k.node] = max(self.db.timestamp[self.my_site.node][k.node], timestamp[from_node][k.node])
         for k in self.all_sites:
             for l in self.all_sites:
                 self.db.timestamp[k.node][l.node] = max(self.db.timestamp[k.node][l.node], timestamp[k.node][l.node])
     
-    def _update_log(self, timestamp, ne, from_site):
+    def _update_log(self, ne):
         # add the logs not in db and remove the block logs that every one knows
         # about.
         new_log = []
@@ -80,10 +84,10 @@ class TweetService(object):
                 for site in self.all_sites:
                     if not self.db.hasRec(eR, site.node):
                         new_log.append(eR)
-                        break;
+                        break
         self.db.log = new_log
 
-    def _update_dict(self, timestamp, ne, from_site):
+    def _update_dict(self, ne):
         changes = {}
         for dR in ne:
             if not changes[dR.op.param]:
@@ -103,19 +107,29 @@ class TweetService(object):
                 self.db.remove(change.param)
             elif todo == 1:
                 self.db.put(change.param)
-    
-    def on_receive(self, from_site, timestamp, log):
+
+    def get_timeline(self):
+        self.db.lock()
+        timeline = []
+        for eR in self.db.log:
+            if eR.op == "tweet" and not self.db.has((self.my_site.node, eR.node)):
+                timeline.append(eR)
+        self.db.release()
+        sorted(timeline, _sort_by_time)
+        return {"timeline": [eR.to_dict() for eR in timeline]}
+
+    def on_receive(self, from_node, timestamp, log):
         self.db.lock()
         # only process the ones that hasn't seen by me.
         ne = [] 
         for fR in log:
             if not self.db.hasRec(fR, self.my_site.node):
                 ne.append(fR)
-
-        self._update_dict(timestamp, ne, from_site)
-        self._update_log(timestamp, ne, from_site)
+        self._update_dict(ne)
+        self._update_log(ne)
         # update the timestamp matrix
-        self._update_timestamp(timestamp, from_site)
+        self._update_timestamp(timestamp, from_node)
         # save the state
         self.db.save()
         self.db.release()
+        return True

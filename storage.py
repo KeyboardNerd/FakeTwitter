@@ -1,10 +1,16 @@
 import json
 import os
 import copy
-import threading
+from threading import Lock
 
 def hasRec(timestamp, event_record, target):
     return timestamp[target][event_record.node] >= event_record.time
+
+class Site(object):
+    def __init__(self, node, name, addr):
+        self.node = node
+        self.name = name
+        self.addr = addr
 
 class EventRecord(object):
     def __init__(self, node, time, op):
@@ -28,6 +34,7 @@ class Storage(object):
     def __init__(self, my_node, num_node, file_name):
         self.my_node = my_node
 
+        self.mutex = Lock()
         self.timestamp = [[0]*num_node for _ in xrange(num_node)]
         self.dict = set()
         self.log = []
@@ -65,10 +72,10 @@ class Storage(object):
         os.rename(self.backup_file_name, self.file_name)
 
     def lock(self):
-        pass
+        self.mutex.acquire()
     
     def release(self):
-        pass
+        self.mutex.release()
 
     def _load_dict(self, s):
         # load a dictionary
