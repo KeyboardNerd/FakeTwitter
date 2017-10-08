@@ -1,6 +1,5 @@
 import json
 import os
-import copy
 from threading import Lock
 
 def hasRec(timestamp, event_record, target):
@@ -23,11 +22,12 @@ class EventRecord(object):
 
 class Operation(object):
     def __init__(self, func, params):
+        # param -> list of premitives
         self.func = func
         self.param = params
     
     def to_dict(self):
-        return {"func": self.func, "params": self.param}
+        return {"func": self.func, "params": self.param[:]}
 
 class Storage(object):
     # all functions should be thread safe

@@ -10,12 +10,8 @@ def _sort_by_time(eR):
 def now():
     return datetime.datetime.now().isoformat()
 
-def serialize(timestamp, log):
-    return json.dumps({"timestamp": timestamp, "log": log})
-
-def deserialize(msg):
-    v = json.loads(msg)
-    return v['msg'], v['T'], v['eR']
+def to_dict(node, timestamp, log):
+    return {"node": node, "timestamp": timestamp, "log": log}
 
 class TweetService(object):
     def __init__(self, db, my_site, all_sites):
@@ -51,7 +47,7 @@ class TweetService(object):
     def tweet(self, message, sender):
         params = (self.my_site.name, message, now())
         self.db.lock()
-        self.db.record(storage.Operation("tweet", json.dumps(params)))
+        self.db.record(storage.Operation("tweet", params))
         self.db.save()
         for target in self.all_sites:
             if target.node != self.my_site.node and not self.db.has((self.my_site.node, target.node)):
@@ -60,7 +56,7 @@ class TweetService(object):
                     if not self.db.hasRec(eR, target.node):
                         new_log.append(eR.to_dict())
                 # async call
-                sender(target.addr, serialize(self.db.timestamp, new_log))
+                sender(target.addr, to_dict(self.my_site.node, self.db.timestamp, new_log))
         self.db.release()
 
     def _update_timestamp(self, timestamp, from_node):
@@ -75,8 +71,8 @@ class TweetService(object):
         # about.
         new_log = []
         tmp_log = self.db.log + ne
-        for eR in enumerate(tmp_log):
-            if eR.op == 'tweet':
+        for eR in tmp_log:
+            if eR.op.func == 'tweet':
                 new_log.append(eR)
             else:
                 for site in self.all_sites:
@@ -86,17 +82,19 @@ class TweetService(object):
         self.db.log = new_log
 
     def _update_dict(self, ne):
-        changes = {}
+        operations = {}
         for dR in ne:
-            if not changes[dR.op.param]:
-                changes[dR.op.param] = dR.op
-            else:
-                changes[dR.op.param].append(dR.op)
-        for change in changes:
+            if dR.op.func != 'tweet':
+                if not operations[dR.op.param]:
+                    operations[dR.op.param] = [dR.op]
+                else:
+                    operations[dR.op.param].append(dR.op)
+
+        for change in operations:
             # replay the events to determine if the change should be applied.
-            sorted(changes[change], key=_sort_by_time)
+            sorted(operations[change], key=_sort_by_time)
             todo = 0 # 0 nothing, 1 add, -1 remove
-            for i in changes[change]:
+            for i in operations[change]:
                 if i.op == 'ins':
                     todo = min(todo + 1, 1)
                 elif i.op == 'del':
@@ -118,12 +116,12 @@ class TweetService(object):
     def on_receive(self, from_node, timestamp, log):
         self.db.lock()
         # only process the ones that hasn't seen by me.
-        ne = [] 
+        new_events = [] 
         for fR in log:
             if not self.db.hasRec(fR, self.my_site.node):
-                ne.append(fR)
-        self._update_dict(ne)
-        self._update_log(ne)
+                new_events.append(fR)
+        self._update_dict(new_events)
+        self._update_log(new_events)
         # update the timestamp matrix
         self._update_timestamp(timestamp, from_node)
         # save the state

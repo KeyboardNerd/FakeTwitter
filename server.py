@@ -29,18 +29,24 @@ def post_request_sender(addr, message):
 @app.route("/recv", methods=['POST'])
 def recv():
     d = request.get_json()
-    twitter.on_receive(d['node'], d['timestamp'], d['log'])
+    log = []
+    for fR in d['log']:
+        log.append(storage.EventRecord(fR['node'], fR['time'], storage.Operation(fR['op']['func'], fR['op']['params'])))
+    twitter.on_receive(d['node'], d['timestamp'], log)
     return jsonify(status="ok")
+
 @app.route("/post", methods=['POST'])
 def post():
     twitter.tweet(request.get_json()["message"], post_request_sender)
     return jsonify(status="ok")
+
 @app.route("/block", methods=['GET'])
 def block():
     blocked = request.args.get('user')
     if not twitter.block(blocked):
         abort(400)
     return jsonify(status="ok")
+
 @app.route("/unblock", methods=['GET'])
 def unblock():
     unblocked = request.args.get('user')
@@ -53,7 +59,7 @@ def timeline():
     tl = twitter.get_timeline()['timeline']
     res = []
     for op in tl:
-        msg = json.loads(op['params'])
+        msg = op['params']
         res.append({"user": msg[0], "message": msg[1], "time": msg[2]})
     return jsonify({"timeline": res})
 
@@ -63,16 +69,16 @@ def suicide():
     os.system('kill $PPID')
 
 if __name__ == '__main__':
-    my_node = None
-    if len(sys.argv) > 1:
-        my_node = int(sys.argv[1])
-    my_site, sites = config.load("config.json", my_node)
+    my_node = int(sys.argv[1])
+    config_file = sys.argv[2]
+    data_file = sys.argv[3]
+    my_site, sites = config.load(config_file, my_node)
     print "I am User '%s' Addr '%s' Node %d"%(my_site.name, my_site.addr, my_site.node)
     print "I know these users:"
     for site in sites:
         print "User '%s' Addr '%s' Node %d"%(site.name, site.addr, site.node)
 
-    database = storage.Storage(my_site.node, len(sites), "datafile")
+    database = storage.Storage(my_site.node, len(sites), data_file)
     twitter = service.TweetService(database, my_site, sites)
     r = urlparse(my_site.addr)
     app.run(host=r.hostname, port=r.port)
