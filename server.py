@@ -22,6 +22,7 @@ def try_post(addr, message):
         print "ConnectionError: the endpoint %s is not online"%(addr,)
 
 def post_request_sender(addr, message):
+    print "broadcasted information:" + json.dumps(message) + " to " + addr
     t = threading.Thread(target=try_post, args=(addr+"/recv", message))
     t.start()
 

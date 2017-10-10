@@ -22,7 +22,7 @@ class EventRecord(object):
 
 class Operation(object):
     def __init__(self, func, params):
-        # param -> list of premitives
+        # param -> tuple of premitives
         self.func = func
         self.param = params
     
@@ -84,7 +84,7 @@ class Storage(object):
         self.log = []
         for eR in log:
             self.log.append(EventRecord(eR["node"], eR["time"], Operation(eR["op"]["func"], eR["op"]["params"])))
-        self.dict = set(s['dict'])
+        self.dict = set([tuple(x) for x in s['dict']])
 
     def _export_dict(self):
         log = []

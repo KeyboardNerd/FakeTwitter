@@ -82,27 +82,28 @@ class TweetService(object):
         self.db.log = new_log
 
     def _update_dict(self, ne):
-        operations = {}
+        operations = {} # contains target -> [operations]
         for dR in ne:
             if dR.op.func != 'tweet':
-                if not operations[dR.op.param]:
-                    operations[dR.op.param] = [dR.op]
+                key = json.dumps(dR.op.param)
+                if key not in operations:
+                    operations[key] = [dR]
                 else:
-                    operations[dR.op.param].append(dR.op)
+                    operations[key].append(dR)
 
-        for change in operations:
+        for target in operations:
             # replay the events to determine if the change should be applied.
-            sorted(operations[change], key=_sort_by_time)
+            sorted(operations[target], key=_sort_by_time)
             todo = 0 # 0 nothing, 1 add, -1 remove
-            for i in operations[change]:
-                if i.op == 'ins':
+            for i in operations[target]:
+                if i.op.func == 'ins':
                     todo = min(todo + 1, 1)
-                elif i.op == 'del':
+                elif i.op.func == 'del':
                     todo = max(todo - 1, -1)
             if todo == -1:
-                self.db.remove(change.param)
+                self.db.remove(tuple(json.loads(target)))
             elif todo == 1:
-                self.db.put(change.param)
+                self.db.put(tuple(json.loads(target)))
 
     def get_timeline(self):
         self.db.lock()
