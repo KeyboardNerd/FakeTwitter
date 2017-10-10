@@ -14,7 +14,6 @@ import requests
 app = Flask(__name__)
 # http server usage:
 # Put data using POST
-# 
 
 def try_post(addr, message):
     try:
@@ -69,10 +68,16 @@ def suicide():
     os.system('kill $PPID')
 
 if __name__ == '__main__':
+    if not sys.argv[1].isdigit():
+        print "The site id \"" + sys.argv[1] + "\" is invalid. It should be an integer."
+        exit(1)
     my_node = int(sys.argv[1])
     config_file = sys.argv[2]
     data_file = sys.argv[3]
     my_site, sites = config.load(config_file, my_node)
+    if my_site == None:
+        print "The site id \"" + sys.argv[1] + "\" is invalid. It cannot be found in the config file."
+        exit(1)
     print "I am User '%s' Addr '%s' Node %d"%(my_site.name, my_site.addr, my_site.node)
     print "I know these users:"
     for site in sites:
