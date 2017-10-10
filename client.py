@@ -18,8 +18,8 @@ def run():
         if not my_site:
             print "Make sure you entered a correct site name instead of a site id. Try again."
 
-    print "Welcome user " + my_site.name + " node " + str(my_site.node) + " addr " + my_site.addr
-    print "You can tell me to 'tweet <message>' or 'block <username>' or 'unblock <username>' or 'view' timeline or 'suicide' or 'quit':"
+    print "Welcome user " + my_site.name + "!\nNode: " + str(my_site.node) + "\nAddress: " + my_site.addr
+    print "Try 'tweet <message>', 'block/unblock <username>', 'view', 'suicide', 'quit':"
     while True:
         command = raw_input(my_site.name + "> ")
         if command.startswith("tweet "):
@@ -35,11 +35,11 @@ def run():
             print "Unblocking user: \"" + tounblock + "\""
             print requests.get(my_site.addr+"/unblock", params={"user": tounblock})
         elif command == "view":
-            print "Here are all the tweets: "
-            # show tweets
+            print "Tweet list: "
+            # fetch tweets
             r = requests.get(my_site.addr+"/timeline")
             for tweet in r.json()['timeline']:
-                print "user: %s says '%s' on '%s'"%(tweet['user'], tweet['message'], tweet['time'])
+                print "@%s %s\n%s"%(tweet['user'], tweet['time'].split(".")[0].replace("T", " "), str(tweet['message']))
         elif command == "quit":
             sys.exit(0)
         elif command == 'suicide':
