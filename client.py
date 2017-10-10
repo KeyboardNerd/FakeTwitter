@@ -6,16 +6,22 @@ import sys
 def run():
     _, all_sites = config.load("config.json")
     my_site = None
+    if len(sys.argv) == 2 and sys.argv[1].isdigit():
+        for site in all_sites:
+            if site.node == int(sys.argv[1]):
+                my_site = site
     while not my_site:
-        name = raw_input("who are you?\r\n> ")
+        name = raw_input("Twitter username: ")
         for site in all_sites:
             if site.name == name:
                 my_site = site
+        if not my_site:
+            print "Make sure you entered a correct site name instead of a site id. Try again."
 
-    print "welcome user " + my_site.name + " node " + str(my_site.node) + " addr " + my_site.addr
-    print "you can tell me to 'tweet <message>' or 'block <username>' or 'unblock <username>' or 'view' timeline or 'suicide' or 'quit':"
+    print "Welcome user " + my_site.name + " node " + str(my_site.node) + " addr " + my_site.addr
+    print "You can tell me to 'tweet <message>' or 'block <username>' or 'unblock <username>' or 'view' timeline or 'suicide' or 'quit':"
     while True:
-        command = raw_input("> ")
+        command = raw_input(my_site.name + "> ")
         if command.startswith("tweet "):
             message = command[6:]
             print "Sending Tweet: \"" + message + "\""
