@@ -1,7 +1,0 @@
-{
-    "my_node": 0,
-    "sites":[
-        {"node": 0, "name": "Ha MaPi", "addr": "http://127.0.0.1:8080"},
-        {"node": 1, "name": "Sha Bi", "addr": "http://127.0.0.1:8081"}
-    ]
-}
