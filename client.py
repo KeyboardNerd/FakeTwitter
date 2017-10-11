@@ -18,7 +18,11 @@ def run():
         if not my_site:
             print "Make sure you entered a correct site name instead of a site id. Try again."
 
-    print "Welcome user " + my_site.name + "!\nNode: " + str(my_site.node) + "\nAddress: " + my_site.addr
+    print "Welcome user " + my_site.name + "!\nNode: " + str(my_site.node) + ", address: " + my_site.addr
+    print "Global Twitter users:", 
+    for site in all_sites:
+        print "\"" + site.name + "\"",
+    print ""
     print "Try 'tweet <message>', 'block/unblock <username>', 'view', 'suicide', 'quit':"
     while True:
         command = raw_input(my_site.name + "> ")
@@ -48,10 +52,10 @@ def run():
             print "Invalid command! Usage:"
             print "tweet <message> - tweet a message"
             print "block <username> - block a user by site id"
-            print "unblock <username> - tweet a message"
-            print "suicide - to shut down the server"
-            print "view - to view the timeline"
-            print "quit - close this program"
+            print "unblock <username> - unblock a user by site id"
+            print "suicide - shut down the server"
+            print "view - view the timeline"
+            print "quit - exit this program"
 
 if __name__ == '__main__':
     run()
