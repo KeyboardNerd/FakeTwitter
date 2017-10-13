@@ -1,4 +1,5 @@
 import json
+import sys
 import datetime
 import storage
 import threading
@@ -109,9 +110,14 @@ class TweetService(object):
         self.db.lock()
         timeline = []
         for eR in self.db.log:
-            if eR.op.func == "tweet" and not self.db.has((self.my_site.node, eR.node)):
-                timeline.append(eR)
-        self.db.release()
+            if eR.op.func == "tweet" and not self.db.has((self.my_site.node, eR.node)): 
+                # insertion sort to put message in timeline, descending order
+                for i in range(len(timeline) + 1):
+                    if i == len(timeline) or eR.op.param[2] > timeline[i].op.param[2]:
+                        timeline.insert(i, eR)
+                        break
+
+        sys.stdout.flush();
         return {"timeline": [eR.op.to_dict() for eR in timeline]}
 
     def on_receive(self, from_node, timestamp, log):
