@@ -116,8 +116,6 @@ class TweetService(object):
                     if i == len(timeline) or eR.op.param[2] > timeline[i].op.param[2]:
                         timeline.insert(i, eR)
                         break
-
-        sys.stdout.flush();
         return {"timeline": [eR.op.to_dict() for eR in timeline]}
 
     def on_receive(self, from_node, timestamp, log):
