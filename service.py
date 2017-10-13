@@ -4,12 +4,13 @@ import datetime
 import storage
 import threading
 import requests
+from operator import itemgetter, attrgetter
 
 def _sort_by_time(eR):
     return eR.time
 
 def now():
-    return datetime.datetime.now().isoformat()
+    return datetime.datetime.utcnow().isoformat()
 
 def to_dict(node, timestamp, log):
     return {"node": node, "timestamp": timestamp, "log": log}
@@ -112,10 +113,9 @@ class TweetService(object):
         for eR in self.db.log:
             if eR.op.func == "tweet" and not self.db.has((self.my_site.node, eR.node)): 
                 # insertion sort to put message in timeline, descending order
-                for i in range(len(timeline) + 1):
-                    if i == len(timeline) or eR.op.param[2] > timeline[i].op.param[2]:
-                        timeline.insert(i, eR)
-                        break
+                timeline.append(eR)
+        timeline = sorted(timeline, key=lambda eR: eR.op.param[2])
+        self.db.release()
         return {"timeline": [eR.op.to_dict() for eR in timeline]}
 
     def on_receive(self, from_node, timestamp, log):
