@@ -83,7 +83,7 @@ if __name__ == '__main__':
     print "I know these users:"
     for site in sites:
         print "User '%s' Addr '%s' Node %d"%(site.name, site.addr, site.node)
-
+    sys.stdout.flush()
     database = storage.Storage(my_site.node, len(sites), data_file)
     twitter = service.TweetService(database, my_site, sites)
     r = urlparse(my_site.addr)
