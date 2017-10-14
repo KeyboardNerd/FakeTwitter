@@ -1,23 +1,13 @@
 import requests
 import config
 import sys
+import socket
 # global timeout = 3000
 
-def run():
-    _, all_sites = config.load("config.json")
-    my_site = None
-    if len(sys.argv) == 2 and sys.argv[1].isdigit():
-        for site in all_sites:
-            if site.node == int(sys.argv[1]):
-                my_site = site
-    while not my_site:
-        name = raw_input("Twitter username: ")
-        for site in all_sites:
-            if site.name == name:
-                my_site = site
-        if not my_site:
-            print "Make sure you entered a correct site name instead of a site id. Try again."
+all_sites, my_site = None, None
+address, port = None, 0
 
+def run():
     print "Welcome user " + my_site.name + "!\nNode: " + str(my_site.node) + ", address: " + my_site.addr
     print "Global Twitter users:", 
     for site in all_sites:
@@ -57,5 +47,34 @@ def run():
             print "view - view the timeline"
             print "quit - exit this program"
 
+def request(address, port, message):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((address, port))
+    sock.send(message)
+    sock.send('\00')
+    data = ""
+    while True:
+        segment = sock.recv(1024)
+        if not segment:
+            break
+        data += segment
+    print data
+
 if __name__ == '__main__':
+    _, all_sites = config.load("config.json")
+    my_site = None
+    if len(sys.argv) == 2 and sys.argv[1].isdigit():
+        for site in all_sites:
+            if site.node == int(sys.argv[1]):
+                my_site = site
+    while not my_site:
+        name = raw_input("Twitter username: ")
+        for site in all_sites:
+            if site.name == name:
+                my_site = site
+        if not my_site:
+            print "Make sure you entered a correct site name instead of a site id. Try again."
+    address = my_site.addr.split(":")[0]
+    port = int(my_site.addr.split(":")[1])
+    request(address, port, "request test message 123123123")
     run()

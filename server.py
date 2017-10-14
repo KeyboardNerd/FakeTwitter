@@ -2,6 +2,8 @@ import threading
 import os
 import json
 import sys
+import socket
+import threading
 
 from urlparse import urlparse
 from flask import Flask, request, jsonify, abort
@@ -25,6 +27,40 @@ def post_request_sender(addr, message):
     print "broadcasted information:" + json.dumps(message) + " to " + addr
     t = threading.Thread(target=try_post, args=(addr+"/recv", message))
     t.start()
+
+def start(hostname, port):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.bind((hostname, port))
+    print "Server started at " + hostname + ":" + str(port)
+    sys.stdout.flush()
+    sock.listen(1)
+    while True:
+        print "Waiting..."
+        sys.stdout.flush()
+        connection, clientaddress = sock.accept()
+        print "connection from " + str(clientaddress)
+        sys.stdout.flush()
+        handle = threading.Thread(
+            target = connectionhandler, 
+            args = (connection,)
+        )
+        handle.start()
+
+def connectionhandler(sock):
+    data = ""
+    while True:
+        segment = sock.recv(1024)
+        data += segment
+        if (data[len(data)-1] == '\00'):
+            break
+    print "received: " + data
+    sys.stdout.flush()
+    sock.send(data)
+    sock.close()
+
+def router(message)
+    print "router receives: " + message
+    print "TODO: route data from here!"
 
 @app.route("/recv", methods=['POST'])
 def recv():
@@ -86,5 +122,6 @@ if __name__ == '__main__':
     sys.stdout.flush()
     database = storage.Storage(my_site.node, len(sites), data_file)
     twitter = service.TweetService(database, my_site, sites)
-    r = urlparse(my_site.addr)
-    app.run(host=r.hostname, port=r.port)
+    r = my_site.addr.split(":")
+    #app.run(host=r.hostname, port=r.port)
+    start(r[0], int(r[1]))
