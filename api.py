@@ -42,12 +42,12 @@ class TweetAPI(object):
 
     def block(self, user_name):
         if not self.service.block(user_name):
-            return 400, ""
+            return 400, "user not found"
         return 200, ""
 
     def unblock(self, user_name):
         if not self.service.unblock(user_name):
-            return 400, ""
+            return 400, "user not found"
         return 200, ""
 
     def view(self):
@@ -65,7 +65,7 @@ class TweetAPI(object):
         head = d['head']
         dict_body = d['body']
         stat = 400
-        r_body = ""
+        r_body = "unknown command"
         if head == 'tweet':
             stat, r_body = self.tweet(dict_body)
         elif head == 'block':
