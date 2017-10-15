@@ -1,127 +1,81 @@
-import threading
-import os
-import json
-import sys
+'''
+server handles incoming connections and send responds.
+
+the language is <message>\00
+'''
+
 import socket
 import threading
+import json
+import api
 
-from urlparse import urlparse
-from flask import Flask, request, jsonify, abort
-from requests.exceptions import ConnectionError
-import service
-import storage
-import config
-import requests
-
-app = Flask(__name__)
-# http server usage:
-# Put data using POST
-
-def try_post(addr, message):
-    try:
-        requests.post(addr, None, message)
-    except ConnectionError as e:
-        print "ConnectionError: the endpoint %s is not online"%(addr,)
-
-def post_request_sender(addr, message):
-    print "broadcasted information:" + json.dumps(message) + " to " + addr
-    t = threading.Thread(target=try_post, args=(addr+"/recv", message))
-    t.start()
-
-def start(hostname, port):
+def listen(hostname, port, router):
+    '''
+    start listening to a port on hostname:port
+    '''
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind((hostname, port))
-    print "Server started at " + hostname + ":" + str(port)
-    sys.stdout.flush()
+    print "server| Server started at " + hostname + ":" + str(port)
     sock.listen(1)
     while True:
-        print "Waiting..."
-        sys.stdout.flush()
         connection, clientaddress = sock.accept()
-        print "connection from " + str(clientaddress)
-        sys.stdout.flush()
+        print "server| connection from " + str(clientaddress)
         handle = threading.Thread(
             target = connectionhandler, 
-            args = (connection,)
+            args = (connection, router)
         )
         handle.start()
 
-def connectionhandler(sock):
-    data = ""
+def connectionhandler(conn, router):
+    data = []
+    valid = False
     while True:
-        segment = sock.recv(1024)
-        data += segment
-        if (data[len(data)-1] == '\00'):
+        segment = conn.recv(1024)
+        if not segment or segment[-1] == '\00':
+            if segment:
+                valid = True
+                data.append(segment[:-1])
             break
-    print "received: " + data
-    sys.stdout.flush()
-    sock.send(data)
-    sock.close()
+        data.append(segment)
+    if valid:
+        response = router("".join(data))
+        conn.send(make_message(response))
+    conn.close()
 
-def router(message)
-    print "router receives: " + message
-    print "TODO: route data from here!"
+def async_send(address, port, message):
+    threading.Thread(target=try_send, args=(address, port, message)).start()
 
-@app.route("/recv", methods=['POST'])
-def recv():
-    d = request.get_json()
-    log = []
-    for fR in d['log']:
-        log.append(storage.EventRecord(fR['node'], fR['time'], storage.Operation(fR['op']['func'], fR['op']['params'])))
-    twitter.on_receive(d['node'], d['timestamp'], log)
-    return jsonify(status="ok")
+def try_send(address, port, message):
+    '''
+    send sends a message to designated address:port with the message + \00
+    '''
+    conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        conn.connect((address, port))
+        conn.send(make_message(message))
+    except Exception as e:
+        print 'server| %s, trying send to %s:%d'%(str(e), address, port)
+    finally:
+        # remove zombie sockets
+        conn.close()
 
-@app.route("/post", methods=['POST'])
-def post():
-    twitter.tweet(request.get_json()["message"], post_request_sender)
-    return jsonify(status="ok")
-
-@app.route("/block", methods=['GET'])
-def block():
-    blocked = request.args.get('user')
-    if not twitter.block(blocked):
-        abort(400)
-    return jsonify(status="ok")
-
-@app.route("/unblock", methods=['GET'])
-def unblock():
-    unblocked = request.args.get('user')
-    if not twitter.unblock(unblocked):
-        abort(400)
-    return jsonify(status="ok")
-
-@app.route("/timeline", methods=['GET'])
-def timeline():
-    tl = twitter.get_timeline()['timeline']
-    res = []
-    for op in tl:
-        msg = op['params']
-        res.append({"user": msg[0], "message": msg[1], "time": msg[2]})
-    return jsonify({"timeline": res})
-
-@app.route("/suicide", methods=['GET'])
-def suicide():
-    # ohhhh yeah, just suicide quick! right thru the throat
-    os.system('kill $PPID')
-
-if __name__ == '__main__':
-    if not sys.argv[1].isdigit():
-        print "The site id \"" + sys.argv[1] + "\" is invalid. It should be an integer."
-        exit(1)
-    my_node = int(sys.argv[1])
-    config_file = sys.argv[2]
-    data_file = sys.argv[3]
-    my_site, sites = config.load(config_file, my_node)
-    if my_site == None:
-        print "The site id \"" + sys.argv[1] + "\" is invalid. It cannot be found in the config file."
-        exit(1)
-    print "I am User '%s' Addr '%s' Node %d"%(my_site.name, my_site.addr, my_site.node)
-    print "I know these users:"
-    for site in sites:
-        print "User '%s' Addr '%s' Node %d"%(site.name, site.addr, site.node)
-    sys.stdout.flush()
-    database = storage.Storage(my_site.node, len(sites), data_file)
-    twitter = service.TweetService(database, my_site, sites)
-    r = my_site.addr.split(":")
-    #app.run(host=r.hostname, port=r.port)
-    start(r[0], int(r[1]))
+def make_message(message):
+    return message + '\00'
+def blocking_req(address, port, message):
+    print "client| sending %s to %s:%d"%(message, address, port)
+    conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    conn.connect((address, port))
+    conn.send(make_message(message))
+    data = []
+    valid = False
+    while True:
+        segment = conn.recv(1024)
+        if not segment or segment[-1] == '\00':
+            if segment:
+                valid = True
+                data.append(segment[:-1])
+            break
+        data.append(segment)
+    if valid:
+        return ''.join(data)
+    return json.dumps({"stat": 500}) # server drop connection unexpectly

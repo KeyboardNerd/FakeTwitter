@@ -26,8 +26,8 @@ class TweetService(object):
             if site.name == name:
                 return site.node
 
-    def block(self, bad_guy):
-        bad_node = self._find_node(bad_guy)
+    def block(self, user_name):
+        bad_node = self._find_node(user_name)
         if bad_node is None:
             return False
         self.db.lock()
@@ -36,8 +36,8 @@ class TweetService(object):
         self.db.release()
         return True
 
-    def unblock(self, bad_guy):
-        bad_node = self._find_node(bad_guy)
+    def unblock(self, user_name):
+        bad_node = self._find_node(user_name)
         if bad_node is None:
             return False
         self.db.lock()
@@ -58,7 +58,7 @@ class TweetService(object):
                     if not self.db.hasRec(eR, target.node):
                         new_log.append(eR.to_dict())
                 # async call
-                sender(target.addr, to_dict(self.my_site.node, self.db.timestamp, new_log))
+                sender(target.addr, target.port, json.dumps(to_dict(self.my_site.node, self.db.timestamp, new_log)))
         self.db.release()
 
     def _update_timestamp(self, timestamp, from_node):
@@ -74,7 +74,7 @@ class TweetService(object):
         new_log = []
         tmp_log = self.db.log + ne
         for eR in tmp_log:
-            if eR.op.func == 'tweet':
+            if eR.op.func == 'tweet': 
                 new_log.append(eR)
             else:
                 for site in self.all_sites:
