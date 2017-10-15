@@ -20,7 +20,10 @@ def init_server(node, sites, data_file, debug_mode=False):
         addr = sites[node].addr
     else:
         addr = "0.0.0.0" # bind to any any
-    server.listen(addr, sites[node].port, tweet_api.route)
+    try:
+        server.listen(addr, sites[node].port, tweet_api.route)
+    except KeyboardInterrupt:
+        print '\n=====server terminated by user=====\n'
 
 def parse_flag():
     if not sys.argv[1].isdigit():
@@ -42,4 +45,7 @@ def parse_flag():
 if __name__ == '__main__':
     node, sites, data_file = parse_flag()
     Process(target=init_server, args=(node, sites, data_file)).start()
-    client.init(node, sites)
+    try:
+        client.init(node, sites)
+    except KeyboardInterrupt:
+        print '\n=====client terminated by user=====\n'
