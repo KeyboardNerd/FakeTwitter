@@ -1,8 +1,7 @@
 {
-    "my_node": 0,
     "sites":[
-        {"node": 0, "name": "keyboard", "addr": "http://127.0.0.1:8080"},
-        {"node": 1, "name": "cyclost", "addr": "http://127.0.0.1:8081"},
-        {"node": 2, "name": "fakedp", "addr": "http://127.0.0.1:8082"}
+        {"name": "keyboard", "addr": "127.0.0.1", "port": 8000},
+        {"name": "cyclost", "addr": "127.0.0.1", "port": 8001},
+        {"name": "fakedp", "addr": "127.0.0.1", "port": 8002}
     ]
 }
