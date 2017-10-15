@@ -111,8 +111,8 @@ class TweetService(object):
         self.db.lock()
         timeline = []
         for eR in self.db.log:
-            if eR.op.func == "tweet" and not self.db.has((self.my_site.node, eR.node)): 
-                # insertion sort to put message in timeline, descending order
+            # timeline should only contain tweets from who doesn't block me.
+            if eR.op.func == "tweet" and not self.db.has((eR.node, self.my_site.node)): 
                 timeline.append(eR)
         timeline = sorted(timeline, key=lambda eR: eR.op.param[2])
         self.db.release()
