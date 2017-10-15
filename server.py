@@ -7,19 +7,22 @@ the language is <message>\00
 import socket
 import threading
 import json
-import api
 
+DEBUG = False
+def debug_print(msg):
+    if DEBUG:
+        print msg
 def listen(hostname, port, router):
     '''
     start listening to a port on hostname:port
     '''
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind((hostname, port))
-    print "server| Server started at " + hostname + ":" + str(port)
+    debug_print("server| Server started at " + hostname + ":" + str(port))
     sock.listen(1)
     while True:
         connection, clientaddress = sock.accept()
-        print "server| connection from " + str(clientaddress)
+        debug_print("server| connection from " + str(clientaddress))
         handle = threading.Thread(
             target = connectionhandler, 
             args = (connection, router)
@@ -54,7 +57,7 @@ def try_send(address, port, message):
         conn.connect((address, port))
         conn.send(make_message(message))
     except Exception as e:
-        print 'server| %s, trying send to %s:%d'%(str(e), address, port)
+        debug_print('server| %s, trying send to %s:%d'%(str(e), address, port))
     finally:
         # remove zombie sockets
         conn.close()
@@ -62,7 +65,7 @@ def try_send(address, port, message):
 def make_message(message):
     return message + '\00'
 def blocking_req(address, port, message):
-    print "client| sending %s to %s:%d"%(message, address, port)
+    debug_print("client| sending %s to %s:%d"%(message, address, port))
     conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     conn.connect((address, port))
     conn.send(make_message(message))
