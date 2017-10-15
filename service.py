@@ -77,6 +77,8 @@ class TweetService(object):
             if eR.op.func == 'tweet': 
                 new_log.append(eR)
             else:
+                # if it's a dict operation, only record the ones not seen by
+                # all.
                 for site in self.all_sites:
                     if not self.db.hasRec(eR, site.node):
                         new_log.append(eR)
@@ -103,9 +105,9 @@ class TweetService(object):
                 elif i.op.func == 'del':
                     todo = max(todo - 1, -1)
             if todo == -1:
-                self.db.remove(tuple(json.loads(target)))
+                self.db.dict.remove(tuple(json.loads(target)))
             elif todo == 1:
-                self.db.put(tuple(json.loads(target)))
+                self.db.dict.add(tuple(json.loads(target)))
 
     def get_timeline(self):
         self.db.lock()
@@ -126,9 +128,9 @@ class TweetService(object):
             if not self.db.hasRec(fR, self.my_site.node):
                 new_events.append(fR)
         self._update_dict(new_events)
-        self._update_log(new_events)
         # update the timestamp matrix
         self._update_timestamp(timestamp, from_node)
+        self._update_log(new_events)
         # save the state
         self.db.save()
         self.db.release()
