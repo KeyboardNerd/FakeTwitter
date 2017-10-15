@@ -6,10 +6,11 @@ def hasRec(timestamp, event_record, target):
     return timestamp[target][event_record.node] >= event_record.time
 
 class Site(object):
-    def __init__(self, node, name, addr):
+    def __init__(self, node, name, addr, port):
         self.node = node
         self.name = name
         self.addr = addr
+        self.port = port
 
 class EventRecord(object):
     def __init__(self, node, time, op):
