@@ -28,11 +28,11 @@ def init(node, sites):
             print "Unblocking user: \"" + tounblock + "\""
             print request(my_site, "unblock", tounblock)
         elif command == "view":
-            print "Tweet list: "
             resp = json.loads(request(my_site, "view", ""))
             if resp['stat'] == 200:
+                print "Tweet list: "
                 for tweet in json.loads(resp['body']):
-                    print tweet
+                    print "@" + tweet[0] + " " + tweet[2].split(".")[0].replace("T", " ") + "\n" + tweet[1]
         elif command == 'quit':
             request(my_site, "quit", "")
             return
