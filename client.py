@@ -11,8 +11,7 @@ def init(node, sites):
     print "Global Tweeter users:",
     for site in sites:
         print "\"" + site.name + "\"",
-    print
-    print "Try 'tweet <message>', 'block/unblock <username>', 'view', 'suicide', 'quit':"
+    print "\nType 'tweet <message>', 'block/unblock <username>', 'view' and 'Ctrl-c' to terminate:"
     while True:
         command = raw_input(my_site.name + "> ")
         if command.startswith("tweet "):
@@ -33,13 +32,9 @@ def init(node, sites):
                 print "Tweet list: "
                 for tweet in json.loads(resp['body']):
                     print "@" + tweet[0] + " " + tweet[2].split(".")[0].replace("T", " ") + "\n" + tweet[1]
-        elif command == 'quit':
-            request(my_site, "quit", "")
-            return
         else:
             print "Invalid command! Usage:"
             print "tweet <message> - tweet a message"
             print "block <username> - block a user by user name"
             print "unblock <username> - unblock a user by user name"
             print "view - view the timeline"
-            print "quit - exit this program"
