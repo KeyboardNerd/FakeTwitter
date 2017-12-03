@@ -46,3 +46,7 @@ def view():
 		if (t[0], c.my_site.id) not in block_set:
 			filtered_tweet.append(t)
 	return filtered_tweet
+
+def router(message):
+	# writing
+	pass
