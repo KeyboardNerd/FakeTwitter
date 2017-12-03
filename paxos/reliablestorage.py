@@ -1,5 +1,6 @@
 from collections import namedtuple
 from threading import Lock
+import model as m
 
 import os 
 import json
@@ -29,6 +30,12 @@ def init(folder_name):
             index = int(filename[2:])
             _LOG[index] = LogEntryFile(folder_name + "/" + filename, folder_name + "/" + filename+".bk", Lock())
 
+def get_log():
+    r = []
+    for i in _LOG:
+        r.append([i, _load(_LOG[i].filename, _LOG[i].backupname)])
+    return r
+
 def acquire(log_index):
     ''' get the log state of a log index to prevent the acquire function to be called twice.
     '''
@@ -37,7 +44,7 @@ def acquire(log_index):
         # initialize the log entry
         _LOG[log_index] = LogEntryFile('%s/_.%d'%(folder, log_index), '%s/_.%d.bk'%(folder, log_index), Lock())
         _LOG[log_index].lock.acquire()
-        state = m.LogState(None, m.AcceptorState(0, None, None))
+        state = m.LogState()
         # commit the log entry
         commit(log_index, state)
         return state
@@ -46,7 +53,7 @@ def acquire(log_index):
     entry.lock.acquire()
     with open(entry.filename, 'r') as f:
         d = json.load(f)
-        return 
+        return m.LogState(d['value'], m.Acceptor(d['acceptor_state']['max_prepare'], d['acceptor_state']['accNum'], d['acceptor_state']['accVal']))
 
 def commit(log_index, state):
     ''' save the log state changes to log_index
@@ -54,7 +61,7 @@ def commit(log_index, state):
     this function can only be called if the log acceptor state has already been acquired.'''
     entry = _LOG.get(log_index, None)
     if entry:
-        _save(entry.filename, entry.backupname, m.log_state(state))
+        _save(entry.filename, entry.backupname, state.to_json())
 
 def release(log_index):
     ''' release locking the state and allow another acquire.
