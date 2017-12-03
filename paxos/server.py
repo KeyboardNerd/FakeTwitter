@@ -74,7 +74,7 @@ def blocking_req(address, port, message):
             data.append(segment)
         if valid:
             ret = ''.join(data)
-            debug_print("client| success with", str(ret))
+            debug_print("client| success with " + str(ret))
             return ret
     except Exception as e:
         debug_print("client| failed with " + str(e))
