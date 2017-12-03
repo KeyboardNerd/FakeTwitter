@@ -1,8 +1,8 @@
 import json
 from collections import namedtuple
 
-# block/unblock: {"op": "b", "u": <id>, "o": <id>}
-# tweet: {"op": "t", "u": "<id>", "m": "<msg>", 't': "<UTC timestamp>"}
+# block/unblock: {"op": "b", "u": <sender id>, "o": <blocked-site id>}
+# tweet: {"op": "t", "u": "<sender id>", "m": "<tweet msg>", 't': "<UTC timestamp>"}
 def block(my_site, other_site):
 	return json.dumps({'op': 'b', 'u': my_site.id, 'o': other_site.id})
 
