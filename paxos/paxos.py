@@ -1,13 +1,16 @@
 import json
+from model import *
 import config as c
 import reliablestorage as data
+import message
 
-from server import send
-from collections import namedtuple
+#from server import async_send
+def async_send(addr, port, message):
+    print addr, port, message
 
-# send function is async
+# async_send function is async
 
-# for a new user, first recover all logs by sending dummy value to all sites, 
+# for a new user, first recover all logs by async_sending dummy value to all sites, 
 # and only if all sites agrees on the dummy value, it knows that that log location is the most uptodate location.
 
 # for any tweet, block, unblock event, select this log location (i) and replicate it to all other sites.
@@ -25,58 +28,50 @@ from collections import namedtuple
 # proposer state trakcs the proposal number, 
 # number of acc, 
 # value with largest accNum
-# 
 
 proposer_states = {}
 
 def createState(log_index):
-    proposer_states[log_index] = ProposerState(None, 0, 0, 0)
+    proposer_states[log_index] = ProposerState(log_index, None, 0, None, set(), set())
 
-def selectState(log_index):
-    proposer_states.get(log_index, None)
-
-def next_proposal_number(log_index):
-    # lamport timestamp
-    return ((selectState(log_index).last_proposal_number + 1) << 16) | my_site.id
-
-def log(msg, send):
+def log(msg):
     # determine the current slot's value by using "synod" algorithm
     # this is a blocking call
 
     # try to log current message to last available index
     # create a new log preparation state
-    log_index = len(data.next_index())
+    log_index = data.new()
     createState(log_index)
-    propose(next_proposal_number(log_index))
+    msg = message.propose(log_index, next_proposal_number(log_index))
+    for site in c.all_sites:
+        async_send(site.addr, site.port, msg)
 
-def get_log():
-    return data.get()
-
-def send_propose(number):
-    msg = json.dumps({"n": number})
-    for site in all_sites:
-        send(site.addr, site.port, msg)
-
-def on_recv_propose(sender_site, msg):
+def on_recv_accept(async_sender_site, msg):
     msg = json.loads(msg)
-    n = msg['n']
+    proposal_number = msg['n']
+    value = msg['v']
     log_index = msg['log_index']
-    data.lock(log_index)
-    if n > data.get_max_prepare(log_index):
-        data.set_max_prepare(log_index, n)
-        send_promise(log_index)
-    data.unlock(log_index)
 
-def send_promise(log_index, reply_site):
-    state = data.get(log_index)
-    msg = message.promise(log_index, state.accNum, state.accVal)
-    send(reply_site.addr, reply_site.port, msg)
+    state = data.acquire(log_index)
+    acceptor = state.acceptor
+    if proposal_number >= acceptor.max_prepare:
+        acceptor.acc_num = proposal_number
+        acceptor.acc_val = value
+        acceptor.max_prepare = proposal_number
+        data.commit(log_index, state)
+        reply_proposer(async_sender_site, message.ack(log_index, acceptor.acc_num, acceptor.acc_val))
+    data.release(log_index)
 
-def on_recv_promise(sender_site, log_index, msg, send):
+def on_commit(sender_site, msg):
     msg = json.loads(msg)
-    accNum = msg['accNum']
-    accVal = msg['accVal']
-    state = selectState(log_index)
-    state.
+    value = msg['v']
+    log_index = msg['log_index']
 
-def send_accept():
+    # set the final value
+    state = data.acquire(log_index)
+    state.value = value
+    data.commit(log_index, state)
+    data.release(log_index)
+
+def reply_proposer(proposer_site, msg):
+    async_send(proposer_site.addr, proposer_site.port, msg)

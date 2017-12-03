@@ -6,6 +6,10 @@ from server import send
 def now():
     return datetime.datetime.utcnow().isoformat()
 
+def recover():
+	# recover the data store
+	pass
+
 def tweet(msg):
 	# tweet a message
 	log_msg = m.tweet(c.my_site, msg, now())
