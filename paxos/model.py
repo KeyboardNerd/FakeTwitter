@@ -1,0 +1,2 @@
+AcceptorState = namedtuple("AcceptorState", ["log_index", "max_prepare", "accNum", "accVal"])
+ProposerState = namedtuple("ProposerState", ["maxNumaccVal", "promise_set", "ack_set", "last_proposal_number"])
