@@ -27,5 +27,5 @@ def ack(accNum, accVal):
 def commit(value):
     return json.dumps({"v": value})
 
-def paxos(log_index, msg):
-	return json.dumps({"log_index": log_index, "msg": msg})
+def paxos(log_index, t, msg):
+	return json.dumps({"log_index": log_index, "type": t, "msg": msg})
