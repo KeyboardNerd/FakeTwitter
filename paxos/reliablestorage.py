@@ -5,7 +5,12 @@ import model as m
 import os 
 import json
 
-LogEntryFile = namedtuple("LogEntryFile", ["filename", "backupname", "lock"])
+class LogEntryFile:
+    def __init__(self, filename, backupname, lock, iscommit):
+        self.filename = filename
+        self.backupname = backupname
+        self.lock = lock
+        self.iscommit = iscommit
 
 folder = None
 _LOG = {}
@@ -28,7 +33,10 @@ def init(folder_name):
     for filename in all_files:
         if filename[:2] == '_.':
             index = int(filename[2:])
-            _LOG[index] = LogEntryFile(folder_name + "/" + filename, folder_name + "/" + filename+".bk", Lock())
+            entry = LogEntryFile(folder_name + "/" + filename, folder_name + "/" + filename+".bk", Lock(), False)
+            if json.loads(_load(entry.filename, entry.backupname))['value']:
+                entry.iscommit = True
+            _LOG[index] = entry
 
 def get_log():
     r = []
@@ -43,9 +51,10 @@ def acquire(log_index):
     entry = _LOG.get(log_index, None)
     if not entry:
         # initialize the log entry
-        _LOG[log_index] = LogEntryFile('%s/_.%d'%(folder, log_index), '%s/_.%d.bk'%(folder, log_index), Lock())
+        _LOG[log_index] = LogEntryFile('%s/_.%d'%(folder, log_index), '%s/_.%d.bk'%(folder, log_index), Lock(), False)
         _LOG[log_index].lock.acquire()
         state = m.LogState()
+        state.acceptor = m.Acceptor()
         # commit the log entry
         commit(log_index, state)
         return state
@@ -62,6 +71,8 @@ def commit(log_index, state):
     this function can only be called if the log acceptor state has already been acquired.'''
     entry = _LOG.get(log_index, None)
     if entry:
+        if state.final_value:
+            entry.iscommit = True
         _save(entry.filename, entry.backupname, state.to_json())
 
 def release(log_index):
@@ -75,6 +86,8 @@ def next_slot():
     if not _LOG:
         _LOG[0] = None
     else:
+        if not _LOG[max(_LOG)].iscommit:
+            return max(_LOG)
         _LOG[max(_LOG)+1] = None
     return max(_LOG)
 

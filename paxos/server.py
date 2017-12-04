@@ -24,7 +24,7 @@ def listen(hostname, port, router):
     sock.listen(1)
     while True:
         connection, clientaddress = sock.accept()
-        debug_print("server| connection from " + str(clientaddress))
+        # debug_print("server| connection from " + str(clientaddress))
         handle = threading.Thread(
             target = connectionhandler, 
             args = (connection, router)
