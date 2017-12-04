@@ -4,6 +4,7 @@ import config as c
 import message
 import threading
 import server
+import time
 
 import reliablestorage as data
 
@@ -30,6 +31,7 @@ def acceptor_recv(msg):
     # retrieve corresponding acceptor from reliable storage
     if msgt == 'propose':
         log_entry = data.acquire(log_index)
+        print log_index, log_entry.acceptor.max_prepare
         result = log_entry.acceptor.on_recv_propose(d['msg'])
         data.commit(log_index, log_entry)
         data.release(log_index)
@@ -67,6 +69,7 @@ class Acceptor(object):
         if n > self.max_prepare:
             self.max_prepare = n
             return message.promise(self.accNum, self.accVal)
+        print 'fail propose #%d < %d'%(n, self.max_prepare)
         return None
     
     def on_recv_accept(self, msg):
@@ -79,6 +82,7 @@ class Acceptor(object):
             self.accVal = v
             self.max_prepare = n
             return message.ack(self.accNum, self.accVal)
+        print "acceptor(#%d) refuses (%d)"%(n, self.accNum)
         return None
 
 class Proposer(object):
@@ -108,7 +112,6 @@ class Proposer(object):
             msg = message.paxos(self.log_index, "propose", message.propose(n))
             results = _send_recv_to_all_acceptors(json.dumps({"head": "recv", "body": msg}))
             for i, v in enumerate(results):
-                print "proposer(%d): recv: %s"%(self.log_index, v)
                 if not v:
                     continue
                 d = json.loads(v)
@@ -129,6 +132,10 @@ class Proposer(object):
                 if accVal:
                     self.choose_own = False
                 self.promise_set.append(i)
+            
+            if len(self.promise_set) < 3:
+                print "failed to reach majority, retrying..."
+                time.sleep(0.1)
 
         if len(self.promise_set) < 3:
             print "failed to reach majority"
@@ -181,7 +188,7 @@ class Proposer(object):
         return number
 
 class LogState(object):
-    def __init__(self, final_value = None, acceptor=Acceptor()):
+    def __init__(self, final_value = None, acceptor=Acceptor(0, None, None)):
         self.final_value = final_value
         self.acceptor = acceptor
 

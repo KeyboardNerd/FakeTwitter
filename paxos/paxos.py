@@ -18,3 +18,22 @@ def log(msg):
 
 def get():
     return data.get_log()
+
+def recover():
+    for i in data._LOG:
+        state = data.acquire(i)
+        if not state.final_value:
+            # use a dummy value to retrieve this
+            log_index = i
+            p = Proposer(log_index, None)
+            p.run()
+    
+    # try to retrive other values
+    while True:
+        log_index = data.next_slot()
+        p = Proposer(log_index, None)
+        b = p.run()
+        if not b: # if the run fails or it hits the end, it'll stop running.
+            return
+
+        

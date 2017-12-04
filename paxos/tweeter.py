@@ -8,11 +8,7 @@ import os
 
 def now():
     return datetime.datetime.utcnow().isoformat()
-
-def recover():
-    # recover the data store
-    pass
-
+            
 def tweet(msg):
     # tweet a message
     log_msg = m.tweet(c.my_site, msg, now())
@@ -21,12 +17,16 @@ def tweet(msg):
 def block(user_name):
     # block a user
     site = c.get_site_by_name(user_name)
+    if not site:
+        return 400, "unknown user"
     log_msg = m.block(c.my_site, site)
     return paxos.log(log_msg)
 
 def unblock(user_name):
     # unblock a user
     site = c.get_site_by_name(user_name)
+    if not site:
+        return 400, "unknown user"
     log_msg = m.unblock(c.my_site, site)
     return paxos.log(log_msg)
 
