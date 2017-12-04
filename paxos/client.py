@@ -5,6 +5,9 @@ def request(site, head, body):
     data = server.blocking_req(site.addr, site.port, json.dumps({"head": head, "body": body}))
     return data
 
+def async_request(site, head, body):
+    server.try_send(site.addr, site.port, json.dumps({"head": head, "body": body}))
+
 def init(node, sites):
     my_site = sites[node]
     print "Welcom user \"%s\", Node(SID): %d, Addr: %s:%d"%(my_site.name, my_site.id, my_site.addr, my_site.port)
@@ -34,8 +37,7 @@ def init(node, sites):
                 for tweet in resp['body']:
                     print "@" + sites[tweet[0]].name + " " + tweet[2].split(".")[0].replace("T", " ") + "\n" + tweet[1]
         elif command == "recover":
-            resp = json.loads(request(my_site, "recover", ""))
-            print resp
+            async_request(my_site, "recover", "")
         else:
             print "Invalid command! Usage:"
             print "tweet <message> - tweet a message"
