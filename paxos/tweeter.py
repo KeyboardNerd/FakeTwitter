@@ -49,9 +49,9 @@ def view():
         if (t[0], c.my_site.id) not in block_set:
             filtered_tweet.append(t)
     # sort, will work as long as format is unchanged
-    filtered_tweet = sorted(filtered_tweet, key=lambda eR: eR.op.param[2])
+    filtered_tweet = sorted(filtered_tweet, key=lambda eR: eR[2])
     # done
-    return filtered_tweet
+    return 200, filtered_tweet
 
 def suicide():
     os.system('kill $PPID')
