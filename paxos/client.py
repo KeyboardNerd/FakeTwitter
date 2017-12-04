@@ -1,5 +1,6 @@
 import json
 import server
+import time
 
 def request(site, head, body):
     data = server.blocking_req(site.addr, site.port, json.dumps({"head": head, "body": body}))
@@ -43,4 +44,5 @@ def init(node, sites):
             print "tweet <message> - tweet a message"
             print "block <username> - block a user by user name"
             print "unblock <username> - unblock a user by user name"
+            print "recover - recover a site by running paxos synod algorithm"
             print "view - view the timeline"
