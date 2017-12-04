@@ -33,6 +33,9 @@ def init(node, sites):
                 print "Tweet list: "
                 for tweet in resp['body']:
                     print "@" + sites[tweet[0]].name + " " + tweet[2].split(".")[0].replace("T", " ") + "\n" + tweet[1]
+        elif command == "recover":
+            resp = json.loads(request(my_site, "recover", ""))
+            print resp
         else:
             print "Invalid command! Usage:"
             print "tweet <message> - tweet a message"

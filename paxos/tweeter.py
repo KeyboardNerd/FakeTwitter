@@ -36,6 +36,8 @@ def view():
     block_set = set()
     tweets = []
     for l in log:
+        if not l:
+            continue
         d = json.loads(l)
         # replay the log
         if d['op'] == 'b':
@@ -76,6 +78,8 @@ def router(message):
         stat, r_body =  view()
     elif head == 'suicide':
         suicide()
+    elif head == 'recover':
+        paxos.recover()
     elif head == 'recv': # paxos
         stat, r_body = recv(dict_body)
     return json.dumps({"stat": stat, "body": r_body})

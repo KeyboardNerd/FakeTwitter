@@ -11,6 +11,7 @@ import config as c
 import server
 import tweeter
 import reliablestorage as data
+import paxos
 
 def init_server(sid, sport):
     try:

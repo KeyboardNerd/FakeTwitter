@@ -20,20 +20,20 @@ def get():
     return data.get_log()
 
 def recover():
-    for i in data._LOG:
-        state = data.acquire(i)
-        if not state.final_value:
-            # use a dummy value to retrieve this
-            log_index = i
-            p = Proposer(log_index, None)
-            p.run()
-    
-    # try to retrive other values
+    # if there's no such log or the log is empty, then we'll need to recover the value.
+    i = 0
+    print "start recovering"
     while True:
-        log_index = data.next_slot()
-        p = Proposer(log_index, None)
+        print i
+        if i in data._LOG and data._LOG[i].iscommit:
+            i += 1
+            continue
+        # use paxos to recover this value, if the final state is None, 
+        # we know that the value is the last one and stop recovering.
+        print "starting proposer for ", i
+        p = Proposer(i, None)
         b = p.run()
-        if not b: # if the run fails or it hits the end, it'll stop running.
-            return
-
-        
+        if not b or not data.acquire(i).final_value:
+            break
+        i += 1
+    return 200, ""
