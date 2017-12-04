@@ -1,0 +1,9 @@
+{
+    "sites":[
+        {"name": "keyboard", "addr": "127.0.0.1", "port": 8000},
+        {"name": "cyclost", "addr": "127.0.0.1", "port": 8001},
+        {"name": "fakedp", "addr": "127.0.0.1", "port": 8002},
+        {"name": "realdp", "addr": "127.0.0.1", "port": 8003},
+        {"name": "qdp", "addr": "127.0.0.1", "port": 8004}
+    ]
+}
