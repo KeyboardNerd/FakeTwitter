@@ -1,24 +1,46 @@
-import config
+'''
+boot up the server and attach a controller to the server
+'''
 import sys
 
-config.load_sites("config.json")
+import config
 
-if not sys.argv[1].isdigit():
-    print "The site id \"" + sys.argv[1] + "\" is invalid. It should be an integer."
-    exit(1)
+from multiprocessing import Process
+import client
+import config as c
+import server
+import tweeter
+import reliablestorage as data
 
-my_id = int(sys.argv[1])
-config.my_site = config.get_site_by_id(my_id)
-if config.my_site == None:
-    print "The site id \"" + sys.argv[1] + "\" is invalid. It cannot be found in the config file."
-    exit(1)
+def init_server():
+    try:
+        data.init("%d"%(c.my_site.id,))
+        server.listen("0.0.0.0", c.my_site.port, tweeter.router)
+    except KeyboardInterrupt:
+        print '\n=====server terminated by user=====\n'
 
-config.log_file_path = "datafile%d.json"%(my_id,)
+def parse_flag():
+    if not sys.argv[1].isdigit():
+        print "The site id \"" + sys.argv[1] + "\" is invalid. It should be an integer."
+        exit(1)
 
-print "I am User '%s' Addr '%s' Node %d"%(config.my_site.name, config.my_site.addr, config.my_site.id)
-print "I know these users:"
-for site in config.all_sites:
-    print "User '%s' Addr '%s' Node %d"%(site.name, site.addr, site.id)
+    my_node = int(sys.argv[1])
+    c.load_sites("config.json")
+    c.my_site = c.get_site_by_id(my_node)
 
-# start the server
-# init_server()
+    if not c.my_site:
+        print "The site id \"" + sys.argv[1] + "\" is invalid. It cannot be found in the config file."
+        exit(1)
+
+    print "I am User '%s' Addr '%s' Node %d"%(c.my_site.name, c.my_site.addr, c.my_site.id)
+    print "I know these users:"
+    for site in c.all_sites:
+        print "User '%s' Addr '%s' Node %d"%(site.name, site.addr, site.id)
+
+if __name__ == '__main__':
+    parse_flag()
+    Process(target=init_server, args=()).start()
+    try:
+        client.init(c.my_site.id, c.all_sites)
+    except KeyboardInterrupt:
+        print '\n=====client terminated by user=====\n'

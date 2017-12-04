@@ -33,7 +33,8 @@ def init(folder_name):
 def get_log():
     r = []
     for i in _LOG:
-        r.append([i, _load(_LOG[i].filename, _LOG[i].backupname)])
+        r.append(i, json.loads(_load(_LOG[i].filename, _LOG[i].backupname))["value"])
+    r.sort()
     return r
 
 def acquire(log_index):
@@ -71,7 +72,10 @@ def release(log_index):
         entry.lock.release()
 
 def next_slot():
-    _LOG[max(_LOG)+1] = None
+    if not _LOG:
+        _LOG[0] = None
+    else:
+        _LOG[max(_LOG)+1] = None
     return max(_LOG)
 
 def _save(filename, backupname, value):

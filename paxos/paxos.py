@@ -10,7 +10,11 @@ def log(msg):
     # create a new log preparation state
     log_index = data.next_slot()
     p = Proposer(log_index, msg)
-    p.run()
+    b = p.run()
+    if b:
+        return 200, ""
+    else:
+        return 500, ""
 
 def get():
     return data.get_log()

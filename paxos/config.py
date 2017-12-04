@@ -5,6 +5,7 @@ my_site = None
 all_sites = []
 Site = namedtuple('Site', ['id', 'name', 'addr', 'port'])
 log_file_path = None
+retry_counter = 1
 
 def load_sites(file_name):
 	with open(file_name) as f:

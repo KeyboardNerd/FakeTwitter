@@ -18,6 +18,7 @@ def listen(hostname, port, router):
     start listening to a port on hostname:port
     '''
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind((hostname, port))
     debug_print("server| Server started at " + hostname + ":" + str(port))
     sock.listen(1)
@@ -56,7 +57,7 @@ def make_message(message):
 # For propose (promise), accept (ack)
 # Response is returned as json data
 def blocking_req(address, port, message):
-    debug_print("client| blocking sending %s to %s:%d"%(message, address, port))
+    #debug_print("client| blocking sending %s to %s:%d"%(message, address, port))
     conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     conn.settimeout(5)
     try:
@@ -74,7 +75,7 @@ def blocking_req(address, port, message):
             data.append(segment)
         if valid:
             ret = ''.join(data)
-            debug_print("client| success with " + str(ret))
+            #debug_print("client| success with " + str(ret))
             return ret
     except Exception as e:
         debug_print("client| failed with " + str(e))
@@ -85,7 +86,7 @@ def blocking_req(address, port, message):
 # For commit
 # Response is not monitored
 def try_send(address, port, message):
-    debug_print("client| non-blocking sending %s to %s:%d"%(message, address, port))
+    #debug_print("client| non-blocking sending %s to %s:%d"%(message, address, port))
     conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     conn.settimeout(5)
     try:
