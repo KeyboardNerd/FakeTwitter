@@ -12,10 +12,10 @@ import server
 import tweeter
 import reliablestorage as data
 
-def init_server():
+def init_server(sid, sport):
     try:
-        data.init("%d"%(c.my_site.id,))
-        server.listen("0.0.0.0", c.my_site.port, tweeter.router)
+        data.init("%d"%(sid,))
+        server.listen("0.0.0.0", sport, tweeter.router)
     except KeyboardInterrupt:
         print '\n=====server terminated by user=====\n'
 
@@ -39,7 +39,7 @@ def parse_flag():
 
 if __name__ == '__main__':
     parse_flag()
-    Process(target=init_server, args=()).start()
+    Process(target=init_server, args=(c.my_site.id,c.my_site.port)).start()
     try:
         client.init(c.my_site.id, c.all_sites)
     except KeyboardInterrupt:
