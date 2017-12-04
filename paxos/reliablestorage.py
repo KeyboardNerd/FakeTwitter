@@ -33,7 +33,7 @@ def init(folder_name):
 def get_log():
     r = []
     for i in _LOG:
-        r.append(i, json.loads(_load(_LOG[i].filename, _LOG[i].backupname))["value"])
+        r.append(json.loads(_load(_LOG[i].filename, _LOG[i].backupname))["value"])
     r.sort()
     return r
 
