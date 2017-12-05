@@ -135,7 +135,7 @@ class Proposer(object):
             
             if len(self.promise_set) < 3:
                 print "failed to reach majority, retrying..."
-                time.sleep(0.1)
+                time.sleep(1)
 
         if len(self.promise_set) < 3:
             print "failed to reach majority"
